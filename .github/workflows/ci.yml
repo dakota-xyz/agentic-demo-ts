@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Test and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # Every dependency is public on npm — no registry token, which is the
+      # point of this repo installing for anyone.
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          # The build renders the sign-in page, and Auth.js refuses to
+          # initialise without a secret. A throwaway is correct here: nothing
+          # this value protects exists at build time.
+          AUTH_SECRET: build-only-not-a-real-secret

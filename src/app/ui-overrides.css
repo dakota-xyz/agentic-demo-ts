@@ -1,0 +1,212 @@
+/* UI overrides — the part a Mantine theme cannot express.
+ *
+ * The theme (src/theme) covers colours, spacing and component defaults. This
+ * file holds interaction states, a few fixed sizes, and browser-level chrome,
+ * only for the components this app actually renders. No font rules live here;
+ * those come from next/font (see layout.tsx).
+ *
+ * Layered so these beat Mantine's base rules but still yield to globals.css
+ * (which is unlayered, and owns the type scale and app surfaces). */
+
+@layer mantine, button-overrides;
+
+@layer button-overrides {
+  .mantine-Button-root {
+    transition: background-color 0.1s ease, border-color 0.1s ease;
+  }
+
+  /* Filled (primary) */
+  .mantine-Button-root[data-variant="filled"]:active {
+    filter: brightness(0.8);
+    border: 1px solid rgb(255 255 255 / 5%) !important;
+  }
+  .mantine-Button-root[data-variant="filled"]:disabled,
+  .mantine-Button-root[data-variant="filled"][data-disabled] {
+    opacity: 0.5;
+    border: 1px solid rgb(255 255 255 / 5%) !important;
+  }
+
+  /* Light (secondary) */
+  .mantine-Button-root[data-variant="light"]:active {
+    background-color: #232222 !important; /* slate80 */
+    border: 1px solid rgb(255 255 255 / 5%) !important;
+  }
+  .mantine-Button-root[data-variant="light"]:disabled,
+  .mantine-Button-root[data-variant="light"][data-disabled] {
+    opacity: 0.5;
+    border: 1px solid rgb(255 255 255 / 5%) !important;
+  }
+
+  /* Subtle (tertiary). The 28px pin is load-bearing: a footer's secondary
+     button must be variant="default" or it stands 8px shorter than its
+     primary. */
+  .mantine-Button-root[data-variant="subtle"] {
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 6px 10px !important;
+    font-weight: 400 !important;
+  }
+  .mantine-Button-root[data-variant="subtle"]:active {
+    background-color: #464543 !important; /* slate60 */
+    border: 1px solid rgb(255 255 255 / 5%) !important;
+  }
+  .mantine-Button-root[data-variant="subtle"]:disabled,
+  .mantine-Button-root[data-variant="subtle"][data-disabled] {
+    opacity: 0.5;
+    border: 1px solid rgb(255 255 255 / 5%) !important;
+  }
+}
+
+/* The app's Table is mantine-datatable's DataTable (see src/theme/table.tsx).
+   We keep only these override rules, not the datatable base stylesheet —
+   importing the base CSS would change the look. */
+@layer mantine, table-overrides;
+
+@layer table-overrides {
+  .mantine-datatable-header th {
+    border-top: 1px solid #2a2929 !important;
+    border-bottom: 1px solid #2a2929 !important;
+    padding: 8px 16px;
+    font-weight: normal;
+  }
+  .mantine-Table-td {
+    padding: 8px 16px;
+  }
+  .mantine-datatable-row {
+    transition: background-color 0.3s ease;
+  }
+  .mantine-datatable-header-cell-sortable:hover {
+    background-color: rgb(88 87 79 / 20%);
+  }
+  .mantine-datatable-header-cell-sortable-group {
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+  .mantine-datatable-header-cell-sortable-unsorted-icon {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+  .mantine-datatable-header-cell-sortable:hover .mantine-datatable-header-cell-sortable-unsorted-icon {
+    opacity: 1;
+  }
+}
+
+@layer mantine, input-overrides;
+
+@layer input-overrides {
+  .mantine-TextInput-input:disabled,
+  .mantine-Select-input:disabled,
+  .mantine-Input-input:disabled {
+    color: #7e7d7a !important;
+    cursor: not-allowed !important;
+  }
+  .mantine-Select-input:disabled::placeholder,
+  .mantine-TextInput-input:disabled::placeholder {
+    color: #6c757d !important;
+  }
+}
+
+@layer mantine, select-overrides;
+
+@layer select-overrides {
+  .mantine-Select-option {
+    transition: background-color 0.1s ease;
+  }
+  .mantine-Select-option:hover,
+  .mantine-Select-option[data-combobox-selected="true"],
+  .mantine-Select-option[data-combobox-active="true"] {
+    background-color: #232222;
+  }
+}
+
+@layer mantine, notifications-overrides;
+
+@layer notifications-overrides {
+  .mantine-Notification-root {
+    border: 1px solid rgb(255 255 255 / 10%) !important;
+    padding: 14px 16px !important;
+  }
+  .mantine-Notification-root::before {
+    display: none !important;
+  }
+  .mantine-Notification-icon {
+    align-self: flex-start !important;
+    background: transparent !important;
+    height: auto !important;
+    margin-right: 16px !important;
+    width: auto !important;
+  }
+  .mantine-Notification-title {
+    font-size: 13px !important;
+  }
+  .mantine-Notification-description {
+    font-size: 12px !important;
+  }
+  .mantine-Notification-closeButton {
+    position: absolute !important;
+    right: 8px !important;
+    top: 8px !important;
+  }
+}
+
+/* Browser-level chrome: the app canvas colour and custom scrollbars. */
+@layer mantine, overrides;
+
+@layer overrides {
+  html {
+    color-scheme: dark;
+  }
+
+  :root {
+    --mantine-color-body: #121111;
+  }
+
+  ::-webkit-scrollbar {
+    height: 12px;
+    width: 12px;
+    overflow: visible;
+  }
+  ::-webkit-scrollbar-track {
+    background-clip: padding-box;
+    border-style: solid;
+    border-color: transparent;
+    border-image: initial;
+    border-width: 0 0 0 2px;
+    box-shadow: none;
+    margin: 0 2px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-clip: padding-box;
+    min-height: 28px;
+    border-image: initial;
+    padding: 100px 0 0;
+    background-color: #333;
+    box-shadow: none;
+    border-style: solid;
+    border-color: transparent;
+    border-width: 2px;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-button {
+    height: 0;
+    width: 0;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #999;
+  }
+
+  ::placeholder {
+    color: rgb(255 255 255 / 50%);
+    opacity: 1;
+  }
+
+  /* iOS zooms a form field whose text is under 16px on focus. */
+  @media (width <= 768px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+}

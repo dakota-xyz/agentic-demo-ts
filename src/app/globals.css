@@ -1,0 +1,1164 @@
+/* App styles — copied VERBATIM from the Go build (frontend/src/styles.css).
+ *
+ * Verbatim on purpose. Every earlier attempt to "port" this drifted: modals,
+ * popovers, button sizes and the type scale all ended up subtly different
+ * because they were re-derived instead of reused. The only edit below is
+ * #root -> body, since Next has no #root element.
+ *
+ * Fonts come from next/font (Inter, JetBrains Mono) in layout.tsx, exposed as
+ * --font-sans and --font-mono on <html>. The theme in src/theme resolves
+ * fontFamily to those variables.
+ */
+
+/* Dakota agentic demo — app styles.
+ *
+ * The palette, type and components come from the Mantine theme in src/theme
+ * (Mantine 8, forced dark). This file holds what the theme has no opinion on:
+ * the app's own surfaces (rail, chat, composer, tabs), and one shared motion
+ * vocabulary so nothing animates at its own tempo.
+ *
+ * Colour rule: never a raw hex. Everything resolves to Dakota's scales —
+ * slate (neutrals), sierra (brand), evergreen (settled), canyon (in flight),
+ * blaze (failed).
+ */
+
+/* ---------- fonts ----------
+ * Inter (sans) and JetBrains Mono (mono) are loaded by next/font in layout.tsx,
+ * which exposes them as --font-sans and --font-mono on <html>. The theme in
+ * src/theme resolves fontFamily to those variables.
+ */
+
+:root {
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --fast: 120ms;
+  --base: 220ms;
+}
+
+html, body { height: 100%; }
+/* Measured against the Go build: its body is slate-9, and the header shares
+   that colour so the two blend into one canvas. Without this, Mantine's dark
+   default (#242424) wins on body while the header stays slate-9, and the
+   header reads as a black band across the top. */
+body {
+  margin: 0;
+  background-color: var(--mantine-color-slate-9);
+}
+
+/* ---------- type scale ----------
+   Dakota's BASE_FONT_SIZE is 10, so its scale runs xs 10 / sm 12 / md 13.3 /
+   lg 15 / xl 16.7. That is sized for a dense dashboard; this app is mostly
+   reading — a conversation, spend limits written as sentences, explanations of
+   what an agent is — and at 13px body copy it was genuinely hard to read.
+
+   Rather than push every call site up two steps (and lose the meaning of
+   "sm" vs "md"), shift the scale itself once, here. Every Dakota component
+   resolves through these variables, so buttons, inputs and badges come along
+   with it and stay in proportion. */
+/* !important because Mantine injects its variables into a runtime <style> that
+   lands after this file — same specificity, later wins, so a plain :root block
+   here is silently ignored. */
+:root {
+  --mantine-font-size-xs: 0.75rem !important;   /* 12px — labels, counts */
+  --mantine-font-size-sm: 0.875rem !important;  /* 14px — secondary copy */
+  --mantine-font-size-md: 1rem !important;      /* 16px — body */
+  --mantine-font-size-lg: 1.125rem !important;  /* 18px */
+  --mantine-font-size-xl: 1.25rem !important;   /* 20px */
+}
+
+/* ---------- quality floor ---------- */
+
+/* Mantine's reset drops focus outlines and Dakota does not add them back, so
+   keyboard users had no visible focus anywhere in the app. One brand ring,
+   keyboard-only. */
+:focus-visible {
+  outline: 2px solid var(--mantine-color-sierra-4);
+  outline-offset: 2px;
+  border-radius: var(--mantine-radius-sm);
+}
+
+/* Every transition and keyframe below is opt-out. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- motion vocabulary ---------- */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.rise { animation: rise var(--base) var(--ease) both; }
+
+/* ---------- shell planes ---------- */
+
+/* Everything rendered on one flat #121111, so the rail had no plane of its own
+   and read as part of the page. Lifting it one step and adding a hairline gives
+   the chrome and the canvas separate surfaces — the rail is furniture, the
+   content is the work.
+   !important is load-bearing here: Dakota's AppNavbar/AppHeader set
+   `background-color: transparent; border-right: none` INLINE, and expose no
+   style prop, so a stylesheet rule cannot otherwise reach them. */
+.mantine-AppShell-navbar {
+  background-color: var(--mantine-color-slate-8) !important;
+  border-right: 1px solid var(--mantine-color-slate-7) !important;
+}
+/* The header shares the canvas colour and takes no rule: Dakota sizes it to the
+   content, not the viewport, so a bottom border drew a line that stopped
+   mid-page. */
+.mantine-AppShell-header {
+  background-color: var(--mantine-color-slate-9) !important;
+}
+
+/* ---------- rail (sidebar) ---------- */
+
+/* The one thing you do more than navigate: make another agent. A full-width
+   row on its own plane above the list, with the plus in a disc — the same
+   shape a compose action takes everywhere, so it is recognised before it is
+   read. */
+.rail-new {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 7px 9px;
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-slate-8);
+  border: 1px solid var(--mantine-color-slate-7);
+  color: var(--mantine-color-slate-0);
+  transition:
+    background-color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+.rail-new:hover {
+  background: var(--mantine-color-slate-7);
+  border-color: var(--mantine-color-slate-6);
+}
+.rail-new-plus {
+  display: grid; place-items: center;
+  width: 24px; height: 24px; flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--mantine-color-slate-7);
+  color: var(--mantine-color-slate-1);
+  transition:
+    background-color var(--base) var(--ease),
+    color var(--base) var(--ease);
+}
+.rail-new:hover .rail-new-plus {
+  background: var(--mantine-color-sierra-6);
+  color: var(--mantine-color-sierra-0);
+}
+
+/* A section label, not a heading: it names the rows under it and then gets out
+   of the way. Indented to the rows' own text so the column has one left edge. */
+.rail-label {
+  padding: 0 10px;
+  margin-bottom: 4px;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-slate-3);
+  letter-spacing: 0.02em;
+}
+
+.rail-row {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 8px 10px;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-slate-2);
+  position: relative;
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.rail-row:hover { background: var(--mantine-color-slate-7); color: var(--mantine-color-slate-0); }
+.rail-row.is-active {
+  background: var(--mantine-color-slate-7);
+  color: var(--mantine-color-slate-0);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+}
+
+/* The active marker grows from the centre rather than blinking on. */
+.rail-row::before {
+  content: '';
+  position: absolute; left: 0; top: 50%;
+  width: 2px; height: 0; border-radius: 2px;
+  background: var(--mantine-color-sierra-4);
+  transform: translateY(-50%);
+  transition: height var(--base) var(--ease);
+}
+.rail-row.is-active::before { height: 60%; }
+
+/* Row actions stay out of the way until the row is reached for. */
+/* Icons stay quiet until the row is active or hovered, so the rail reads as
+   names first and chrome second. */
+.rail-icon { color: var(--mantine-color-slate-3); flex-shrink: 0; transition: color var(--fast) var(--ease); }
+.rail-row:hover .rail-icon { color: var(--mantine-color-slate-1); }
+.rail-row.is-active .rail-icon { color: var(--mantine-color-sierra-3); }
+
+/* Row actions stay out of the way until you go looking for them. A comment had
+   been spliced into the middle of this selector, which broke the reveal and left
+   a second rule forcing opacity:1 — so the action was permanently visible and
+   the rail read as chrome first, names second. */
+/* An agent row is a DIV holding two buttons — the name and the trash — because
+   a button inside a button is invalid. The cost is that the row's padding and
+   its glyph belong to the div, not to either button, so the actual target was
+   the width and height of the text: a row that lights up under the cursor but
+   ignores a click near its top or bottom edge.
+   This stretches the name button's hit area over the whole row without nesting
+   anything. The overlay is transparent and sits under the trash, which lifts
+   itself back out with its own stacking context below. */
+.rail-row-hit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.rail-row-action {
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
+  /* Above the stretched overlay, or revoking an agent would select it. */
+  position: relative;
+  z-index: 1;
+}
+.rail-row:hover .rail-row-action,
+.rail-row:focus-within .rail-row-action {
+  opacity: 1;
+}
+
+/* Icons stay quiet until the row is active or hovered, so the rail reads as
+   names first and chrome second. */
+.rail-icon { color: var(--mantine-color-slate-3); flex-shrink: 0; transition: color var(--fast) var(--ease); }
+.rail-row:hover .rail-icon { color: var(--mantine-color-slate-1); }
+.rail-row.is-active .rail-icon { color: var(--mantine-color-sierra-3); }
+
+/* Kept for the seg-tab alert count, which is the one place a pulse earns its
+   attention: it sits next to the number it is about. */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* ---------- segmented tabs ---------- */
+
+/* A pill track with one indicator that slides between positions. Mantine's
+   underline tabs read as browser chrome next to the rest of this UI. */
+.seg {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-slate-8);
+  border: 1px solid var(--mantine-color-slate-7);
+  /* Hug the tabs. Inside a Stack the default stretch made the track span the
+     whole column, which read as a toolbar rather than a set of tabs. */
+  align-self: flex-start;
+}
+.seg-indicator {
+  position: absolute;
+  top: 2px; bottom: 2px; left: 0;
+  border-radius: calc(var(--mantine-radius-md) - 3px);
+  background: var(--mantine-color-slate-6);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  transition: transform var(--base) var(--ease), width var(--base) var(--ease);
+  pointer-events: none;
+}
+.seg-item {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px;
+  border-radius: calc(var(--mantine-radius-md) - 3px);
+  font-size: 0.92rem; font-weight: 500;
+  color: var(--mantine-color-slate-2);
+  white-space: nowrap;
+  transition: color var(--fast) var(--ease);
+}
+.seg-item:hover { color: var(--mantine-color-slate-0); }
+.seg-item.is-active { color: var(--mantine-color-slate-0); }
+
+/* Counts ride inside the tab, so the nav carries data and not just labels. */
+.seg-count {
+  min-width: 20px; height: 20px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9px;
+  font-size: 0.75rem; font-weight: 500;
+  background: var(--mantine-color-slate-6);
+  color: var(--mantine-color-slate-1);
+  transition: background-color var(--fast) var(--ease);
+}
+.seg-item.is-active .seg-count {
+  background: var(--mantine-color-sierra-5);
+  color: var(--mantine-color-slate-0);
+}
+.seg-count.is-alert {
+  background: var(--mantine-color-canyon-4);
+  color: var(--mantine-color-slate-0);
+}
+
+/* ---------- chat ---------- */
+
+.chat-shell {
+  display: flex; flex-direction: column;
+  flex: 1; min-height: 0;
+  background: transparent;
+  border: none;
+  overflow: hidden;
+  /* Clear of the viewport edge — the composer was sitting flush against it,
+     which read as the page being cut off rather than ending. */
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+/* Each turn rises into place; the delay is set inline per index so a restored
+   transcript cascades instead of snapping in at once. */
+.turn { animation: rise var(--base) var(--ease) both; }
+
+/* Agent replies are prose, not bubbles — long explanations should read like a
+   document. Only the human's turns get a surface. */
+/* Both sides of the conversation read at the same size. The agent's prose was
+   inheriting the body default while the human's bubble set its own, so replies
+   looked a step smaller than the messages they answered. */
+.msg-prose { font-size: 0.95rem; }
+.msg-prose > *:first-child { margin-top: 0; }
+.msg-prose > *:last-child { margin-bottom: 0; }
+.msg-prose p { margin: 0 0 0.65em; line-height: 1.65; }
+.msg-prose ul, .msg-prose ol { margin: 0.4em 0; padding-left: 1.25em; }
+.msg-prose li { margin: 0.2em 0; }
+.msg-prose strong { font-weight: 500; color: var(--mantine-color-slate-0); }
+.msg-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--mantine-color-slate-8);
+  padding: 1px 5px; border-radius: 4px;
+}
+.msg-prose pre {
+  background: var(--mantine-color-slate-9);
+  border: 1px solid var(--mantine-color-slate-6);
+  border-radius: 8px; padding: 10px 12px; overflow-x: auto;
+}
+
+.bubble {
+  max-width: 78%;
+  padding: 11px 16px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--mantine-color-slate-5);
+  color: var(--mantine-color-slate-0);
+  font-size: 0.95rem; line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* The agent's mark — one sierra anchor point down the reply column. */
+.agent-mark {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 11px;
+  color: var(--mantine-color-sierra-2);
+  background: var(--mantine-color-slate-8);
+  box-shadow: inset 0 0 0 1px var(--mantine-color-sierra-7);
+}
+
+/* Drafting is a real LLM call and takes seconds — silence read as a hang. */
+.thinking { display: inline-flex; gap: 4px; align-items: center; height: 22px; }
+.thinking i {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--mantine-color-sierra-3);
+  animation: bob 1.2s var(--ease) infinite both;
+}
+.thinking i:nth-child(2) { animation-delay: 0.15s; }
+.thinking i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bob {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40%           { opacity: 1;   transform: translateY(-4px); }
+}
+
+/* ---------- composer ---------- */
+
+/* One surface. Dakota's Textarea and ActionIcon each draw their own chrome,
+   which previously stacked into a box inside a box inside a box. */
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 8px 6px;
+  border-radius: 20px;
+  border: 1px solid var(--mantine-color-slate-6);
+  background: var(--mantine-color-slate-8);
+  transition: border-color var(--base) var(--ease), box-shadow var(--base) var(--ease);
+}
+
+/* Controls sit under the text rather than beside it, so the field gets the full
+   width and long instructions wrap naturally instead of into a slot. */
+.composer-controls {
+  display: flex; align-items: center; gap: 4px;
+}
+.composer-controls .spacer { flex: 1; }
+.composer:focus-within {
+  border-color: var(--mantine-color-sierra-5);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mantine-color-sierra-5) 18%, transparent);
+}
+/* The field has to own the space between the two icons; without this the
+   textarea shrink-wraps and the send button lands mid-row. */
+.composer-input { width: 100%; }
+/* Mantine styles its input font-size with higher specificity than a plain
+   descendant selector, so an unqualified rule here was silently losing and the
+   composer sat at 12px. size="md" on the component sets it properly; these
+   stay !important so the padding and chrome removal cannot be undone either. */
+.composer textarea {
+  width: 100%;
+  border: none !important;
+  background: transparent !important;
+  padding: 4px 6px !important;
+  min-height: 30px;
+  font-size: 1rem !important;
+  line-height: 1.6 !important;
+}
+.composer textarea::placeholder { font-size: 1rem; }
+.composer textarea:focus { outline: none !important; box-shadow: none !important; }
+
+/* ---------- responsive surfaces ---------- */
+
+button.card { font: inherit; color: var(--mantine-color-text); }
+
+.lift {
+  transition: background-color var(--fast) var(--ease),
+              border-color var(--fast) var(--ease),
+              transform var(--fast) var(--ease);
+}
+.lift:hover {
+  border-color: var(--mantine-color-slate-5) !important;
+  background-color: var(--mantine-color-slate-6) !important;
+}
+.lift:active { transform: translateY(1px); }
+
+/* Starter prompts are the first thing a visitor clicks — they warm toward the
+   brand on hover so they read as invitations, not list items. */
+.starter {
+  display: block; width: 100%; text-align: left;
+  padding: 13px 16px;
+  font-size: 0.95rem;
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--mantine-color-slate-6);
+  background: var(--mantine-color-slate-8);
+  color: var(--mantine-color-slate-1);
+  transition: background-color var(--fast) var(--ease),
+              border-color var(--fast) var(--ease),
+              transform var(--fast) var(--ease);
+}
+.starter:hover {
+  border-color: var(--mantine-color-sierra-5) !important;
+  background-color: var(--mantine-color-slate-7) !important;
+  transform: translateX(2px);
+}
+
+/* ---------- the wire ---------- */
+
+/* Raw platform JSON. Monospace, and it scrolls rather than wraps, so what is on
+   screen is byte-for-byte what went over it. */
+.wire-json {
+  font-family: var(--font-mono);
+  font-size: 0.82rem; line-height: 1.6;
+  background: var(--mantine-color-slate-9);
+  border: 1px solid var(--mantine-color-slate-6);
+  border-radius: 8px; padding: 10px 12px; margin: 0;
+  overflow-x: auto; white-space: pre;
+  color: var(--mantine-color-slate-1);
+}
+
+/* ---------- legacy bridge (shrinking) ----------
+   mandate-form.tsx and scheduled-form.tsx still use class names from the
+   hand-rolled system that predated the Mantine theme. These map them onto theme
+   variables so they inherit the real palette. Convert those two files to
+   Dakota's Form, then delete this block. Do not add to it. */
+
+.card {
+  background: var(--mantine-color-slate-7);
+  border: 1px solid var(--mantine-color-slate-6);
+  border-radius: var(--mantine-radius-md);
+  padding: 18px;
+}
+.col { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.center { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.muted { color: var(--mantine-color-slate-2); }
+.faint { color: var(--mantine-color-slate-3); }
+.small { font-size: 0.82rem; }
+.mono { font-family: var(--font-mono); font-size: 0.85em; }
+.empty { display: grid; place-items: center; padding: 28px 0; }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 999px; font-size: 0.76rem; font-weight: 500;
+  background: var(--mantine-color-slate-6); color: var(--mantine-color-slate-2);
+}
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  font: inherit; font-weight: 500; font-size: 0.9rem;
+  padding: 8px 14px; border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-slate-6);
+  background: var(--mantine-color-slate-6); color: var(--mantine-color-text);
+  cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--mantine-color-slate-5); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn.primary {
+  background: var(--mantine-color-sierra-5);
+  border-color: var(--mantine-color-sierra-5);
+  color: var(--mantine-color-white);
+}
+.btn.danger { color: var(--mantine-color-blaze-2); border-color: transparent; background: transparent; }
+.btn.sm { padding: 5px 10px; font-size: 0.82rem; }
+.btn.block { width: 100%; }
+.linkbtn {
+  background: none; border: none; color: var(--mantine-color-sierra-3);
+  cursor: pointer; font: inherit; padding: 0;
+}
+input, select, textarea {
+  font: inherit; font-size: 0.95rem;
+  color: var(--mantine-color-text);
+  background: var(--mantine-color-slate-8);
+  border: 1px solid var(--mantine-color-slate-6);
+  border-radius: var(--mantine-radius-sm);
+  padding: 9px 12px; width: 100%; outline: none;
+  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--mantine-color-sierra-5);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mantine-color-sierra-5) 16%, transparent);
+}
+input::placeholder, textarea::placeholder { color: var(--mantine-color-slate-3); }
+select { cursor: pointer; }
+input[type="checkbox"] { width: auto; accent-color: var(--mantine-color-sierra-5); }
+textarea { resize: vertical; min-height: 56px; }
+
+/* The bridge's field labels — these forms use plain <label>, so they need the
+   same weight and colour the Dakota inputs get elsewhere. */
+.field label, label.small { color: var(--mantine-color-slate-1); font-weight: 500; }
+
+/* ---------- new-agent modal ---------- */
+
+.point-mark {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center;
+  color: var(--mantine-color-sierra-2);
+  background: var(--mantine-color-slate-8);
+  box-shadow: inset 0 0 0 1px var(--mantine-color-slate-6);
+}
+
+/* Name suggestions — one tap to fill the field.
+   Smaller than the input they fill: they are a shortcut past the typing, not a
+   second way of answering the question, and at the field's own weight they
+   competed with it. */
+.suggest {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--mantine-color-slate-1);
+  background: var(--mantine-color-slate-8);
+  border: 1px solid var(--mantine-color-slate-6);
+  transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.suggest:hover {
+  border-color: var(--mantine-color-sierra-5);
+  color: var(--mantine-color-slate-0);
+}
+
+/* ---------- readable secondary text ----------
+   Mantine's `dimmed` resolves dark enough that 12-14px secondary copy was hard
+   to read against these surfaces. Secondary text should be quieter than the
+   primary, not faint. */
+:root {
+  --mantine-color-dimmed: var(--mantine-color-slate-1);
+}
+
+/* ---------- rail wordmark ---------- */
+
+/* Sized as a fraction of the rail, not in pixels: the mark should hold the
+   same share of the column at any rail width, and the intrinsic aspect keeps
+   the height honest. Slightly under full white so it sits in the chrome rather
+   than shouting from it. */
+.rail-logo {
+  width: 45%;
+  display: block;
+  opacity: 0.92;
+}
+
+/* The wordmark is a home button, so it has to say so on approach — an inert
+   mark and a clickable one look identical at rest, and the only honest moment
+   to tell them apart is the hover. It brightens rather than moving: this sits
+   above the rail's own rows, and a mark that shifts under the cursor makes the
+   whole column feel loose. */
+.rail-logo-btn {
+  display: block;
+  width: 100%;
+  border-radius: var(--mantine-radius-sm);
+}
+.rail-logo-btn:hover .rail-logo { opacity: 1; }
+
+/* ---------- header bubble ---------- */
+
+/* A bubble: fully round ends, its name always on it. Nothing about the label
+   moves — a control that changes width on approach makes the row beside it
+   twitch, and the point of a header control is that it stays where you last
+   saw it. What answers the pointer is the SURFACE (warming into sierra) and
+   the GLYPH, which is small enough that motion reads as life rather than as
+   something being rearranged. */
+.topbar-bubble {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--mantine-color-slate-7);
+  background: var(--mantine-color-slate-8);
+  color: var(--mantine-color-slate-1);
+  font-size: var(--mantine-font-size-sm);
+  white-space: nowrap;
+  transition:
+    border-color var(--fast) var(--ease),
+    background-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.topbar-bubble:hover,
+.topbar-bubble:focus-visible {
+  /* sierra-7 as a wash rather than sierra-5 as a fill: the header is the
+     quietest plane in the app and a saturated chip in it reads as an alert. */
+  background: var(--mantine-color-sierra-7);
+  border-color: var(--mantine-color-sierra-5);
+  color: var(--mantine-color-sierra-1);
+}
+.topbar-bubble.is-active {
+  background: var(--mantine-color-sierra-7);
+  border-color: var(--mantine-color-sierra-5);
+  color: var(--mantine-color-sierra-0);
+}
+
+/* The glyph is the only thing that moves, and what it does is the one thing a
+   bulb can do: it comes ON. Warm colour, a half-step of scale and a glow that
+   is genuinely light — a drop-shadow in its own hue, not a box-shadow around
+   the square it sits in. Motion would have been arbitrary here; this is the
+   icon behaving like the object it draws. */
+.topbar-bubble svg {
+  flex-shrink: 0;
+  transition:
+    transform var(--base) var(--ease),
+    color var(--fast) var(--ease),
+    filter var(--base) var(--ease);
+}
+.topbar-bubble:hover svg,
+.topbar-bubble:focus-visible svg,
+.topbar-bubble.is-active svg {
+  transform: scale(1.12);
+  color: var(--mantine-color-sierra-1);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--mantine-color-sierra-1) 65%, transparent));
+}
+
+/* ---------- treasury chip (header) ---------- */
+
+/* The balance and its refresh read as one control: a soft-cornered block, not a
+   pill, with the refresh joined to its right edge. Refreshing is the thing you
+   do most often here, so it should not be behind a menu. */
+.treasury-group {
+  display: inline-flex; align-items: stretch;
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--mantine-color-slate-7);
+  background: var(--mantine-color-slate-8);
+  overflow: hidden;
+  transition: border-color var(--fast) var(--ease);
+}
+.treasury-group:hover { border-color: var(--mantine-color-slate-6); }
+
+.treasury-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  transition: background-color var(--fast) var(--ease);
+}
+.treasury-chip:hover { background: var(--mantine-color-slate-7); }
+
+.treasury-refresh {
+  border-radius: 0 !important;
+  border: none !important;
+  width: 34px !important;
+}
+
+/* One turn that leaves quickly and settles slowly — it reads as the icon being
+   flicked rather than a spinner starting up. */
+@keyframes spin-once {
+  to { transform: rotate(360deg); }
+}
+.treasury-refresh.is-spinning svg {
+  animation: spin-once 650ms cubic-bezier(0.12, 0.8, 0.2, 1);
+}
+/* An unfunded treasury is the one thing that silently breaks a demo, so it gets
+   a mark in the chrome rather than a banner in the page. */
+.treasury-alert {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--mantine-color-canyon-3);
+  animation: pulse 2.4s var(--ease) infinite;
+}
+
+/* A quiet aside inside a dialog — the reassurance beside a primary action. */
+/* Aligns the icon optically with the sentence rather than the box. */
+.reassure {
+  display: flex; align-items: center;
+  padding: 11px 13px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-slate-8);
+  border: 1px solid var(--mantine-color-slate-6);
+  color: var(--mantine-color-slate-1);
+}
+
+/* Numbered steps in the funding hand-off. Numbers earn their place here: these
+   really are ordered, and doing step 3 before step 2 gets you nothing. */
+.step-num {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 0.8rem; font-weight: 500;
+  color: var(--mantine-color-sierra-2);
+  background: var(--mantine-color-slate-8);
+  box-shadow: inset 0 0 0 1px var(--mantine-color-sierra-7);
+}
+
+/* A genuinely neutral state pill. Dakota's status Badge falls back to the brand
+   colour for unrecognised names, which made "Not connected" look like a
+   warning about something that is merely not switched on. */
+.pill-muted {
+  display: inline-flex; align-items: center;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 500;
+  color: var(--mantine-color-slate-2);
+  background: var(--mantine-color-slate-8);
+  border: 1px solid var(--mantine-color-slate-6);
+}
+
+/* Connected, in the brand rather than a success green — this is a link that
+   exists, not an outcome that succeeded. */
+.pill-live {
+  display: inline-flex; align-items: center;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 500;
+  color: var(--mantine-color-sierra-2);
+  background: var(--mantine-color-slate-8);
+  border: 1px solid var(--mantine-color-sierra-7);
+}
+
+/* The Go build used Mantine's ScrollArea inside .chat-shell; this is the same
+   job in one class, so the transcript scrolls while the composer stays put. */
+.chat-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mantine-color-slate-5) transparent;
+}
+.chat-scroll::-webkit-scrollbar { width: 8px; }
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: var(--mantine-color-slate-5);
+  border-radius: 4px;
+}
+
+/* Panels other than the chat scroll in their own pane too. */
+.scroll-pane {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mantine-color-slate-6) transparent;
+}
+.scroll-pane::-webkit-scrollbar { width: 8px; }
+.scroll-pane::-webkit-scrollbar-thumb {
+  background: var(--mantine-color-slate-6);
+  border-radius: 4px;
+}
+
+/* ---------- header row ---------- */
+/* The agent name, the tabs and the treasury share one bar. Dakota's AppHeader
+   lays its slots out in a Group that WRAPS by default, and the three together
+   are wider than the space left beside the rail — so the treasury dropped onto
+   a second row and overlapped the conversation. Nothing may wrap here: the bar
+   is a fixed 70px, and a second row has nowhere to go. */
+.mantine-AppShell-header .mantine-Group-root {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+/* The tabs are the only elastic part, so they are what gives. */
+.mantine-AppShell-header .seg {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ---------- surfaces ---------- */
+/* One plane for all the chrome. The rail, the conversation, the composer and
+   the panel cards are the same surface as each other and a step up from the
+   page — so the app reads as one object on a canvas rather than as three
+   differently-lit panes. */
+.composer,
+.mantine-Popover-dropdown {
+  background-color: var(--mantine-color-slate-8);
+}
+/* Cards take bg="slate.8" as a prop instead: Dakota's Card sets its own
+   background, and a stylesheet rule loses to it without !important. */
+
+/* The composer sits INSIDE the chat shell, so it needs its own edge to stay
+   legible now that both share a colour. */
+.composer {
+  border: 1px solid var(--mantine-color-slate-7);
+}
+
+/* The human's turns keep the brand surface; the agent's prose sits directly on
+   the shell, as it did before. */
+.msg-bubble {
+  background-color: var(--mantine-color-sierra-7);
+}
+
+/* The agent name and its tabs, in the header. Given its own class rather than
+   styled through Mantine's generated selectors, so the offset survives a
+   version bump. */
+.agent-bar {
+  padding-left: 24px;
+  margin: 0;
+  min-width: 0;
+}
+
+/* The transcript fades out at the top rather than being sliced off by the
+   header. A mask, not a gradient overlay: the conversation sits on a
+   transparent shell now, so an overlay would need to know the page colour and
+   would stop matching the moment that changed. Masking fades the CONTENT, so it
+   is right whatever is behind it.
+ 
+   The bottom gets a shorter fade for the same reason — text running under the
+   composer looked clipped rather than continuing. */
+.chat-scroll {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 40px,
+    #000 calc(100% - 20px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 40px,
+    #000 calc(100% - 20px),
+    transparent 100%
+  );
+}
+
+/* A mask clips the scrollbar too, so it would fade in and out with the content.
+   Overlay scrolling keeps it out of the masked box entirely. */
+.chat-scroll {
+  scrollbar-gutter: stable;
+}
+
+/* Dakota's Paper writes `border: 1px solid ...` as an INLINE style, so
+   withBorder={false} does not clear it and a class alone cannot outrank it.
+   Scoped to the transcript: turns are already distinguished by their surface
+   and their side, and an outline on top of that is one cue too many. */
+.msg-bubble {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* AppShell sets the header's inset and padding INLINE, so a plain rule loses.
+   The agent bar carries its own 24px offset — this stops the two stacking into
+   an indent that no longer lines up with anything. */
+.mantine-AppShell-header {
+  margin: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* ---------- the drafted plan, above the approve button ----------
+   Each action gets a row. Indented behind a rule so the plan reads as one
+   object attached to the agent's message rather than as more chat, and so a
+   supporting step (an address, an auto-account) sits visibly under the step it
+   serves. */
+.plan-preview {
+  border-left: 2px solid var(--mantine-color-slate-6);
+  padding-left: 12px;
+  margin: 2px 0 2px 2px;
+}
+.plan-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.plan-step.is-sub {
+  padding-left: 16px;
+}
+.plan-step-icon {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--mantine-color-slate-3);
+}
+.plan-step.is-sub .plan-step-icon {
+  color: var(--mantine-color-slate-4);
+}
+
+/* ---------- readable status colours ----------
+   Mantine derives a component's text colour from the MID shade of the named
+   scale. On this palette that is #7b181d for blaze — a wine, on a near-black
+   card — so every error message, alert and notification arrived effectively
+   invisible. The failure is worst exactly where it matters: the one time a
+   person needs to read the UI is when something has gone wrong.
+
+   Redefining the `light-color` variables fixes Alert, Notification and every
+   light-variant Badge in one place, rather than per call site. The wells stay
+   as Mantine computes them; only the ink moves to the readable end of each
+   scale. See lib/tone for the same pairing done by hand where a component
+   needs its background chosen too. */
+:root {
+  --mantine-color-blaze-light-color: var(--mantine-color-blaze-1);
+  --mantine-color-canyon-light-color: var(--mantine-color-canyon-0);
+  --mantine-color-evergreen-light-color: var(--mantine-color-evergreen-1);
+  --mantine-color-sierra-light-color: var(--mantine-color-sierra-0);
+}
+
+/* The revoke icon in the rail.
+   color="blaze" resolves to the MID shade of an already-dark scale — #7b181d on
+   a near-black rail, which is the same unreadable pairing this palette keeps
+   producing. Quiet until hovered, then the light end of the scale. */
+.rail-row-danger { color: var(--mantine-color-slate-4); }
+.rail-row:hover .rail-row-danger { color: var(--mantine-color-slate-2); }
+.rail-row-danger:hover { color: var(--mantine-color-blaze-0) !important; }
+
+/* ---------- insights: bars ---------- */
+
+/* Two bars on ONE scale.
+ *
+ * The account's whole position is two numbers — what is funded and what is
+ * committed — and the only question anyone asks of them is "does the first
+ * cover the second". A pair of stat tiles answers that with arithmetic the
+ * reader has to do; two bars drawn to a shared maximum answer it with length,
+ * which the eye does for free. That is the entire reason these exist, so they
+ * share a scale religiously: the moment each bar normalises to its own width
+ * the comparison silently becomes a lie.
+ *
+ * Colour is SEQUENTIAL, not categorical. Dakota's palette is deliberately
+ * desaturated and earthy, and a categorical set drawn from it fails every
+ * colour-blind separation check — canyon and sierra are two browns. Wallets
+ * have no identity worth a hue anyway; they are ordered by size. So funding
+ * runs down one ramp (sierra, light to dark), commitments sit in canyon — the
+ * colour this app already uses for money in flight — and the legend beneath
+ * carries the names, so nothing is ever identified by colour alone. */
+
+.ins-track {
+  position: relative;
+  display: flex;
+  /* The separator is a GAP, not a stroke. A border around each segment adds
+     ink that is not data and thickens the bar; letting the track show through
+     costs nothing and reads cleaner at 2px. */
+  gap: 2px;
+  width: 100%;
+  border-radius: 999px;
+  /* A lift off whatever it lands on, not a named step.
+     This was slate-7, which is exactly the colour Dakota's Card resolves to —
+     so the unfilled part of every bar was invisible and a barely-used limit
+     rendered as a small blob floating in nothing, which reads as a broken
+     component rather than a nearly-empty one. Naming a step bakes in an
+     assumption about the surface, and that assumption was already wrong once;
+     an alpha overlay is right on any dark card and stays right if the card
+     moves. */
+  background: rgb(255 255 255 / 0.09);
+  overflow: hidden;
+  /* Sweeps open left to right on mount, at the app's tempo. clip-path rather
+     than a scaleX transform: scaling a flex row stretches the 2px gaps along
+     with it, so the separators would grow and then snap back. */
+  animation: ins-sweep 560ms var(--ease) both;
+}
+
+@keyframes ins-sweep {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+.ins-seg {
+  position: relative;
+  /* A wallet holding 0.4% still has to be visible and hoverable. */
+  min-width: 4px;
+  transition: opacity var(--fast) var(--ease);
+}
+
+/* A single directional sheen, the same on every segment. It is lighting, not
+   data — the hue underneath is what carries the value. */
+.ins-seg::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    170deg,
+    rgb(255 255 255 / 0.16),
+    rgb(255 255 255 / 0) 58%,
+    rgb(0 0 0 / 0.14)
+  );
+  pointer-events: none;
+}
+
+/* Reaching for one segment recedes the others, so a two-wallet bar can be read
+   apart without a tooltip having to say which is which. */
+.ins-track:hover .ins-seg { opacity: 0.45; }
+.ins-track .ins-seg:hover { opacity: 1; }
+
+/* ONE grid for every bar in the card, not one per row.
+ *
+ * Label ↔ bar ↔ value. Both the label and the value column are shared, which is
+ * the entire reason this is a single grid: give each row its own and the value
+ * columns size to their own content, so a long figure on one row shortens that
+ * row's track and the two bars stop ending in the same place. A shared scale
+ * whose bars are different lengths is not a shared scale — it is a chart that
+ * lies quietly, and it lies most on exactly the rows where the numbers differ
+ * most. */
+.ins-scale {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 14px;
+}
+
+/* Under a phone's width the label column is the first thing to go: the bar is
+   the content, and the value can take the row under it. */
+@media (max-width: 640px) {
+  .ins-scale { grid-template-columns: 72px minmax(0, 1fr); }
+  .ins-scale > .ins-row-value { grid-column: 2; justify-self: end; }
+}
+
+/* A count small enough to see rather than read. Up to a dozen open payments,
+   ticks beat a numeral: five is recognisably more than two at a glance, where
+   "5" and "2" are the same shape until parsed. Past the cap it degrades to the
+   number, because forty ticks is a texture and not a count. */
+.ins-units { display: flex; gap: 3px; align-items: center; height: 12px; }
+.ins-unit {
+  width: 3px; height: 12px; border-radius: 2px;
+  /* The unfilled ticks are the track, not a second series — one step off the
+     card and no further. */
+  background: var(--mantine-color-slate-6);
+}
+.ins-unit.is-on { background: var(--mantine-color-sierra-2); }
+
+/* The severity spine down the left of an insight row. Carries the same tone as
+   the row's glyph, so a wall of items has a readable edge before any of it is
+   read — and it fades out downward so it reads as an accent rather than a
+   second border. */
+.ins-spine {
+  position: absolute;
+  /* In the card's own gutter, not the row's. The row carries no padding now —
+     the card's 24px is the only inset — so a spine at left:0 would strike
+     through the glyph instead of edging the row. */
+  left: -13px; top: 0; bottom: 0;
+  width: 2px;
+}
+
+/* ---------- inbox routing ---------- */
+
+/* Choosing which agent receives forwarded invoices. Rows rather than a select:
+   the question being answered is "who has this?", and a dropdown hides every
+   option but one — you would have to open it to learn what the alternatives
+   even are. The rows borrow the rail's vocabulary (hairline plane, growing
+   left marker) so this reads as the same product choosing the same kind of
+   thing, not a form. */
+.inbox-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 12px;
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid transparent;
+  background: var(--mantine-color-slate-8);
+  color: var(--mantine-color-slate-1);
+  position: relative;
+  transition:
+    background-color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.inbox-row:hover { background: var(--mantine-color-slate-7); color: var(--mantine-color-slate-0); }
+.inbox-row.is-picked {
+  background: var(--mantine-color-slate-7);
+  border-color: var(--mantine-color-sierra-6);
+  color: var(--mantine-color-slate-0);
+}
+
+/* The marker grows from the centre, the same gesture as the rail's. */
+.inbox-row::before {
+  content: '';
+  position: absolute; left: 0; top: 50%;
+  width: 2px; height: 0; border-radius: 2px;
+  background: var(--mantine-color-sierra-4);
+  transform: translateY(-50%);
+  transition: height var(--base) var(--ease);
+}
+.inbox-row.is-picked::before { height: 62%; }
+
+/* The glyph carries the selection, so the row needs no radio dot: a control
+   that is already a list of one-of-many does not have to draw the mechanism. */
+.inbox-mark {
+  display: grid; place-items: center;
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-slate-7);
+  color: var(--mantine-color-slate-3);
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.inbox-row.is-picked .inbox-mark {
+  background: var(--mantine-color-sierra-7);
+  color: var(--mantine-color-sierra-2);
+}
+
+/* ---------- insights: columns ---------- */
+
+/* Money leaving, by day.
+ *
+ * Columns rather than bars because the axis is TIME, and time reads left to
+ * right — a horizontal bar chart of dates asks the reader to rotate it in their
+ * head. Every day in the window gets a slot whether or not anything fires in
+ * it: the gaps are the point, since a fortnight of nothing followed by a spike
+ * is the shape worth seeing, and dropping empty days would compress it into a
+ * flat row of evenly-spaced payments that never happened that way. */
+
+.ins-cols {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 108px;
+}
+
+.ins-col {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  /* The hit target is the whole column, not the drawn bar — a day with a small
+     amount is otherwise a 3px-tall thing to hover. */
+  cursor: default;
+}
+
+.ins-col-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(
+    180deg,
+    var(--mantine-color-canyon-0),
+    var(--mantine-color-canyon-2)
+  );
+  transition: opacity var(--fast) var(--ease);
+  animation: ins-grow 460ms var(--ease) both;
+  transform-origin: bottom;
+}
+
+/* An empty day still draws its baseline, so the axis reads as continuous time
+   rather than as a chart that starts wherever the first payment is. */
+.ins-col-fill.is-empty {
+  height: 2px;
+  /* Same reason as the bar track, and more acute at 2px tall: a baseline the
+     colour of the card is no baseline at all. */
+  background: rgb(255 255 255 / 0.13);
+  animation: none;
+}
+
+@keyframes ins-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+.ins-cols:hover .ins-col-fill { opacity: 0.45; }
+.ins-cols .ins-col:hover .ins-col-fill { opacity: 1; }
+
+/* The day axis. Only the ends and the middle are labelled — a tick under all
+   thirty columns is unreadable at this width and says nothing the tooltip does
+   not. */
+.ins-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
