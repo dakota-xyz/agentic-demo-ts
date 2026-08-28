@@ -82,7 +82,8 @@ the integration cost:
 | Turn a plan into real payments | `client.instructions.create({ payment_agent_id, proposals })` |
 | Build the exact bytes a passkey signs | `mandateSignPayload(mandate, 'approve')` |
 | Authorize it | `client.mandates.approve(id, { approver_public_key, signature })` |
-| Answer questions about the account | `client.insights.chat(customerId, { messages })` |
+| Answer questions about the account | the same conversation — the converser handles both |
+| Pull the deterministic account report | `client.insights.get(customerId)` |
 | See what is queued | `client.scheduledPayments.list({ signer_id })` |
 
 No hand-rolled HTTP, no hand-rolled RFC 8785 canonicalisation, no polling loop

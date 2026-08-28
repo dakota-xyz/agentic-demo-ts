@@ -33,7 +33,7 @@ import {
   followThread,
   stripLeadingMention,
 } from '@/lib/slack/gate'
-import { routeTurn, tailForInsights, withoutAttachments } from '@/lib/insights'
+import { withoutAttachments } from '@/lib/transcript'
 
 // Slack -> agent.
 //
@@ -362,28 +362,6 @@ async function handleTurn(event: SlackEvent) {
 
     const history = withoutAttachments(((tenancy.conversations ?? {})[agent.id] ?? []) as ChatMessage[])
 
-    // An account question in the channel goes to the read-only reporter, same
-    // as in the app. It cannot draft a payment, so there is no button to add.
-    if (!attachments.length && routeTurn(text) === 'insights' && tenancy.customerId) {
-      const res = await withBudget(
-        dakota().insights.chat(tenancy.customerId, {
-          messages: tailForInsights(history as { role?: string; content?: string }[], text),
-        } as never)
-      )
-      const reply = res.reply ?? 'I could not put a report together just then.'
-      await update(channel, placeholderTs, reply)
-      await updateTenancy(user.email, (u) => {
-        u.conversations ??= {}
-        u.conversations[agent.id] = [
-          ...((u.conversations[agent.id] ?? []) as unknown[]),
-          { role: 'user', content: text },
-          { role: 'assistant', content: reply },
-        ]
-        const link = (u.agents ?? []).find((a) => a.id === agent.id)?.slack
-        if (link) link.lastThreadTs = threadTs
-      })
-      return
-    }
     const convo = dakota().resumeAgentConversation(agent.id, history, {
       timezone: process.env.DEMO_TIMEZONE ?? 'America/New_York',
     })

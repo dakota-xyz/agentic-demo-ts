@@ -212,8 +212,8 @@ wrong question, and hardest to spot when two requests are in flight.
 
 | Flow | Entry point | Then |
 |---|---|---|
-| Ask for a payment | `api/chat/route.ts` | `routeTurn()` → `resumeAgentConversation().send()` |
-| Ask *about* the account | same route | `routeTurn()` → `insights.chat()` — read-only, cannot propose |
+| Ask for a payment | `api/chat/route.ts` | `resumeAgentConversation().send()` |
+| Ask *about* the account | same route | the same `send()` — the converser answers both |
 | Invoice attached | same route | `sendWithAttachments()`, 8 MiB cap, PDF/PNG/JPEG/WebP/GIF |
 | Accept a plan | `api/proposals/` → `lib/accept.ts` | `instructions.create()` |
 | Sign a mandate | `api/mandates/[id]/challenge` → `/sign` | `mandateSignPayload()` → `mandates.approve()` |
@@ -222,10 +222,17 @@ wrong question, and hardest to spot when two requests are in flight.
 | Forwarded invoice | `api/email/inbound` | `?secret=` guard → same `send()` |
 | Settlement announce | `api/cron/settlements` | `scheduledPayments.list()`, every minute |
 
-`routeTurn()` in `src/lib/insights.ts` is deliberately lopsided: action words
-(`pay`, `send`, `schedule`, `cancel`) win outright, and the insights path only
-claims a turn it is clearly entitled to. Misrouting a question to the payments
-agent is mild; misrouting an instruction to a reporter silently drops it.
+**There is no client-side routing any more.** This app used to keyword-match
+each turn (`routeTurn()` in `src/lib/insights.ts`) to decide whether it was a
+payment instruction for the agent or a question for a separate read-only
+insight chat. Platform folded account-insight Q&A into the payment converser
+(ENG-3407) and removed the insight chat endpoint (ENG-3153), so both now go to
+one `send()` and the server decides with the account in front of it. If you are
+tempted to reintroduce a matcher here, do not: the old one defaulted to
+PAYMENTS on every ambiguous turn precisely because it could not tell.
+
+The deterministic insight REPORT is unaffected — `insights.get()`, behind the
+Insights panel via `api/insights/route.ts`.
 
 ---
 
@@ -239,7 +246,7 @@ agent is mild; misrouting an instruction to a reporter silently drops it.
   silently.
 - Conversations are stateless: persist `convo.messages()` and rebuild with
   `resumeAgentConversation`. **Strip attachments before persisting**
-  (`withoutAttachments()` in `src/lib/insights.ts`).
+  (`withoutAttachments()` in `src/lib/transcript.ts`).
 - Handle errors off `APIError` (`statusCode`, `code`, `requestId`, `retryable`),
   never off message text.
 - List endpoints answer either `{ data, meta }` or a bare array.

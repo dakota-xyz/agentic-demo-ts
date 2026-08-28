@@ -4,7 +4,7 @@ import { authed, body } from '@/lib/api'
 import { dakota } from '@/lib/dakota'
 import { dropCoveredMandates, activeLimitsFor, verdictFor } from '@/lib/autopay'
 import { acceptPlan } from '@/lib/accept'
-import { routeTurn, tailForInsights, withoutAttachments } from '@/lib/insights'
+import { withoutAttachments } from '@/lib/transcript'
 
 // One chat turn with an agent.
 //
@@ -82,28 +82,6 @@ export const GET = authed(async ({ tenancy, req }) => {
   })
 })
 
-/** Ask the read-only reporter, and say so if it is rate limited. */
-async function answerFromInsights(
-  customerId: string,
-  history: unknown[],
-  text: string
-): Promise<string> {
-  try {
-    const res = await dakota().insights.chat(customerId, {
-      messages: tailForInsights(history as { role?: string; content?: string }[], text),
-    } as never)
-    return res.reply ?? 'I could not put a report together just then.'
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    // Insights is rate limited per customer. Saying so is far better than a raw
-    // 429, which reads as the account being broken.
-    if (/429|rate/i.test(msg)) {
-      return 'I have answered a lot of account questions recently and need a moment — try again shortly.'
-    }
-    throw e
-  }
-}
-
 export const POST = authed(async ({ user, tenancy, req, saveTenancy }) => {
   const { agentId, message, timezone, attachment } = await body<ChatRequest>(req)
 
@@ -145,24 +123,6 @@ export const POST = authed(async ({ user, tenancy, req, saveTenancy }) => {
 
   const history = withoutAttachments(((tenancy.conversations ?? {})[agent.id] ?? []) as ChatMessage[])
 
-  // A question about the account goes to the read-only insights endpoint
-  // instead of the payments agent. Same chat box, same transcript — the visitor
-  // never has to know there are two, and the reporter cannot propose a payment
-  // even if the question is phrased like a request.
-  if (!attachments && routeTurn(text) === 'insights' && tenancy.customerId) {
-    const reply = await answerFromInsights(tenancy.customerId, history, text)
-    await saveTenancy((u) => {
-      u.conversations ??= {}
-      // Recorded in the SAME transcript, so a follow-up ("and MeatCo?") has the
-      // context whichever endpoint answers it next.
-      u.conversations[agent.id] = [
-        ...((u.conversations[agent.id] ?? []) as unknown[]),
-        { role: 'user', content: text },
-        { role: 'assistant', content: reply },
-      ]
-    })
-    return NextResponse.json({ reply, proposals: [], hasProposals: false, source: 'insights' })
-  }
   const conversation = dakota().resumeAgentConversation(agent.id, history, {
     // Left unset, the agent resolves times as UTC — so "pay them at 10am"
     // silently means 10am UTC, which is the wrong payment at the wrong time for
