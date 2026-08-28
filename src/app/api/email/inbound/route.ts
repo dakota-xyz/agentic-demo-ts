@@ -27,7 +27,7 @@ import { planSteps } from '@/lib/proposal'
 import { renderEmail, type EmailParts } from '@/lib/email-template'
 import { sendMail, mailConfigured } from '@/lib/mailer'
 import { appOrigin } from '@/lib/origin'
-import { withoutAttachments } from '@/lib/insights'
+import { withoutAttachments } from '@/lib/transcript'
 
 // Forward an invoice, get a drafted payment.
 //

@@ -165,36 +165,40 @@ WebP and GIF; 8 MiB cap.
 
 ## 4. Ask about the account
 
-Questions go to a **different endpoint** from instructions, and the difference
-is a safety property rather than a detail.
+Ask in the same box, in the same conversation. *"Pay MeatCo $2,000"* and
+*"how much am I spending on MeatCo?"* are the same `send()`.
 
 ```mermaid
 flowchart TD
-    A["you type something"] --> B{"does it ask for an ACTION?<br/>pay · send · schedule · cancel"}
-    B -- yes --> C["payments agent<br/>can draft a proposal"]
-    B -- no --> D{"does it ask ABOUT the account?<br/>insights · summary · how much · balance"}
-    D -- yes --> E["insights<br/>read-only, cannot propose"]
-    D -- no --> C
+    A["you type something"] --> C["payment converser<br/>answers questions AND drafts proposals"]
     C --> F["one reply, one transcript"]
-    E --> F
 ```
 
 ```ts
-const res = await client.insights.chat(customerId, { messages })
+const turn = await client.resumeAgentConversation(agentId, history).send(text)
 ```
 
-The payments agent can put a payment in front of you. Insights cannot — it
-narrates a deterministic report and never originates a number. Merging them
-would mean *"how much am I spending?"* could return something to approve.
+**This used to be two endpoints and a guess.** The app keyword-matched every
+turn — action words like `pay`/`send`/`schedule` went to the payments agent,
+question words like `summary`/`how much`/`balance` went to a separate read-only
+insight chat. The split existed for a real safety reason: a reporter that
+cannot propose cannot answer *"how much am I spending?"* with something to
+approve.
 
-**The routing is deliberately lopsided.** Action words win outright, because
-*"pay MeatCo and give me a summary"* is a payment with a pleasantry attached —
-routing it to a reporter would silently drop the instruction. Misrouting the
-other way is mild: the payments agent has account context and answers
-imperfectly.
+The matcher was the weak part, not the idea. It read the words and nothing
+else, so it defaulted to PAYMENTS on everything ambiguous — misrouting a
+question is mild, while misrouting an INSTRUCTION to a reporter silently drops
+a payment on the floor. A safe default is still a guess.
 
-Both replies land in the same transcript, so a follow-up like *"and MeatCo?"*
-has its context whichever endpoint answers next.
+Platform folded account-insight Q&A into the converser (ENG-3407) and removed
+the insight chat endpoint (ENG-3153). The decision now happens server-side with
+the account actually in front of it, and the safety property is enforced where
+it belongs: a turn that only answers a question comes back with no proposals,
+so there is nothing to approve. You still see everything the agent proposes
+before anything moves — that has not changed.
+
+The deterministic insight REPORT is untouched: `client.insights.get(customerId)`
+still backs the Insights panel. It was only the conversational half that moved.
 
 ---
 

@@ -56,7 +56,7 @@ await save(convo.messages())
 
 One thing to handle yourself: **strip attachments before persisting.** Decoded
 PDF bytes have no business in a transcript, and they do not survive a
-round-trip through JSON. See `withoutAttachments()` in `src/lib/insights.ts`.
+round-trip through JSON. See `withoutAttachments()` in `src/lib/transcript.ts`.
 
 ## Keep a record of the wallets you create
 
