@@ -72,8 +72,9 @@ cannot, and where they land here:
 | Slack ack-first, work-after | goroutine outliving the response | `waitUntil` from `@vercel/functions` |
 | Settlement watcher (60s) | ticker goroutine | Vercel Cron (`vercel.json`) |
 
-Note the cron runs **every minute**, which needs a Vercel plan that allows it —
-on Hobby, cron is limited to once a day and settlements will announce late.
+Note the cron runs **every 15 minutes**, which needs a Vercel plan that allows
+sub-daily cron — on Hobby, cron is limited to once a day and settlements will
+announce late.
 
 
 ## After the first deploy
@@ -101,5 +102,11 @@ connections; a direct Postgres endpoint runs out of backends long before Vercel
 runs out of concurrency. Neon's `DATABASE_URL` is already the pooled one —
 `DATABASE_URL_UNPOOLED` is the direct one, and is not what this app wants.
 
-**The settlement cron runs every minute.** Hobby plans cap cron at once per day,
-which would make Slack settlement announcements hours late.
+**The settlement cron runs every 15 minutes.** Two limits pin that number from
+opposite sides. Hobby plans cap cron at once per day, which would make Slack
+settlement announcements hours late. In the other direction, Neon suspends an
+idle compute after 5 minutes, so any interval under that keeps the database
+awake around the clock for a sweep that usually finds nothing. A once-a-minute
+cron is what exhausted this deployment's compute quota: Postgres began
+answering `53000` (`configuration_limit_exceeded`), and because the signed-in
+home page reads Postgres before it renders, every login turned into a 500.

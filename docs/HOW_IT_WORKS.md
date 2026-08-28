@@ -333,7 +333,7 @@ version of this demo answered immediately and continued in a goroutine;
 ```mermaid
 flowchart LR
     subgraph Watch["Settlements, with nobody watching"]
-        C1["Vercel Cron · every minute"] --> C2["scheduledPayments.list()"]
+        C1["Vercel Cron · every 15 min"] --> C2["scheduledPayments.list()"]
         C2 --> C3{"newly executed<br/>or failed?"}
         C3 -- yes --> C4["post into the thread<br/>that ASKED for it"]
         C3 -- no --> C5["nothing"]

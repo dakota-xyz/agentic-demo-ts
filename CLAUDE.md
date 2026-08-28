@@ -220,7 +220,7 @@ wrong question, and hardest to spot when two requests are in flight.
 | Enrol a passkey | `api/passkey/register/finish` | `signers.create()` + `attachUserToWallet()` per wallet |
 | Slack message | `api/slack/events` | HMAC → ack < 3s → `waitUntil` → same `send()` |
 | Forwarded invoice | `api/email/inbound` | `?secret=` guard → same `send()` |
-| Settlement announce | `api/cron/settlements` | `scheduledPayments.list()`, every minute |
+| Settlement announce | `api/cron/settlements` | `scheduledPayments.list()`, every 15 minutes |
 
 **There is no client-side routing any more.** This app used to keyword-match
 each turn (`routeTurn()` in `src/lib/insights.ts`) to decide whether it was a
